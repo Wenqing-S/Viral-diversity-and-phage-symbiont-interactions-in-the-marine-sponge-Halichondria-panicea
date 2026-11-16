@@ -130,7 +130,7 @@ metapop --input_samples /virus_metapop/bam/ \
 
 ######################
 ### Ca. H. symbioticus analysis
- for g in `cat genomes.txt`
+for g in `cat genomes.txt`
 do
     echo
     echo "Working on $g ..."
@@ -144,31 +144,36 @@ done
 for g in *.db
 do
     anvi-run-hmms -c $g --num-threads 4
-    anvi-run-ncbi-cogs -c $g --num-threads 4 --cog-data-dir /database/anvio/cog
+    anvi-run-ncbi-cogs -c $g --num-threads 4 --cog-data-dir /gxfs_work/geomar/smomw651/database/anvio/cog
     anvi-scan-trnas -c $g --num-threads 4
-    anvi-run-pfams -c $g --num-threads 4 --pfam-data-dir /database/anvio
-done 
-  anvi-display-contigs-stats *db --server-only --port
-anvi-profile -c HP_bin.3.db \
-             --sample-name HP_bin3 \
-             --output-dir HP_bin3 \
-             --blank
+    anvi-run-pfams -c $g --num-threads 4 --pfam-data-dir /gxfs_work/geomar/smomw651/database/anvio
+done
+
+anvi-script-gen-genomes-file --input-dir . \
+                             -o external-genomes.txt
+
 anvi-gen-genomes-storage -e external-genomes.txt \
                          -o Susy-GENOMES.db
 
 anvi-pan-genome -g Susy-GENOMES.db \
-                -n susy \
-                -o PAN \
-                --num-threads 10               
+                --project-name Susy \
+                --num-threads 4
 
 anvi-compute-genome-similarity --external-genomes external-genomes.txt \
                                --program fastANI \
                                --output-dir ANI \
                                --num-threads 4 \
                                --pan-db Susy/Susy-PAN.db
-anvi-merge */PROFILE.db -o Susy-MERGED -c HP_bin.3.db   
-anvi-script-add-default-collection -p profiles/Susy-MERGED/PROFILE.db 
-  anvi-gen-variability-profile -c HP_bin.3.db \
+
+anvi-display-pan -p Susy/Susy-PAN.db \
+                 -g Susy-GENOMES.db --server-only --port 9100
+###
+
+anvi-merge */PROFILE.db -o Susy-MERGED -c HP_bin.3.db
+
+anvi-script-add-default-collection -p profiles/Susy-MERGED/PROFILE.db
+
+anvi-gen-variability-profile -c HP_bin.3.db \
                -p profiles/Susy-MERGED/PROFILE.db \
                -C DEFAULT \
                -b EVERYTHING \
@@ -177,11 +182,33 @@ anvi-script-add-default-collection -p profiles/Susy-MERGED/PROFILE.db
                --include-split-names \
                --quince-mode \
                -o HP_bin3-SNVs.txt
-anvi-script-snvs-to-interactive HP_bin3-SNVs.txt -o HP_bin3_snvs 
-anvi-get-sequences-for-gene-calls \
-    -c Susy-GENOMES.db \
-    --get-aa-sequences \
-    -o Susy-GENOMES.faa
+
+anvi-gen-fixation-index-matrix --variability-profile HP_bin3-SNVs.txt \
+                               --output-file FST_HP_bin3.txt
+###
+anvi-merge */PROFILE.db -o Susy-MERGED -c HP_bin.3.db
+
+anvi-script-add-default-collection -p profiles/Susy-MERGED/PROFILE.db
+
+anvi-gen-variability-profile -c HP_bin.3.db \
+               -p profiles/Susy-MERGED/PROFILE.db \
+               -C DEFAULT \
+               -b EVERYTHING \
+               --min-occurrence 5 \
+               --min-coverage-in-each-sample 20 \
+               --include-split-names \
+               --quince-mode \
+               -o HP_bin3-SNVs.txt
+
+anvi-gen-fixation-index-matrix --variability-profile HP_bin3-SNVs.txt \
+                               --output-file FST_HP_bin3.txt
+###
+anvi-gen-fixation-index-matrix \
+  -c HP_bin.3.db \
+  -p profiles/Susy-MERGED/PROFILE.db \
+  --gene-caller-ids 138 \
+  -o gene_fst/FST_gene_138.txt
+
 
 ######################
 ### GTA tree
