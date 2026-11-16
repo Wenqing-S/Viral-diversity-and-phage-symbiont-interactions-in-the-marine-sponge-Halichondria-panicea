@@ -182,4 +182,54 @@ anvi-get-sequences-for-gene-calls \
     -c Susy-GENOMES.db \
     --get-aa-sequences \
     -o Susy-GENOMES.faa
-  
+
+######################
+### GTA tree
+
+iqtree2 -s GTA_TerL_tree_aln_clip.faa \
+  -m MFP \
+  -B 1000 --bnni \
+  -T AUTO \
+  -pre TerL_MFP"
+
+##### metatranscriptome
+fastp \
+  -i Hp27_Mar22_B02_tome_R1.fastq.gz \
+  -I Hp27_Mar22_B02_tome_R2.fastq.gz \
+  -o Hp27_Mar22_B02_tome_R1.clean.fastq.gz \
+  -O Hp27_Mar22_B02_tome_R2.clean.fastq.gz \
+  -q 20 \
+  -u 30 \
+  -l 50 \
+  --detect_adapter_for_pe \
+  --trim_poly_x \
+  -w 8 \
+  -h sample.fastp.html \
+  -j sample.fastp.json
+
+sortmerna \
+  --ref /database/rRNA_databases_v4/smr_v4.3_default_db.fasta \
+  --reads HpL1_Jun22_H03_tome_R1.clean.fastq.gz \
+  --reads HpL1_Jun22_H03_tome_R2.clean.fastq.gz \
+  --paired_in \
+  --fastx \
+  --other HpL1_Jun22_H03.non_rRNA \
+  --aligned HpL1_Jun22_H03.rRNA \
+  --threads 8 \
+  --workdir sortmerna_work/HpL1_Jun22_H03
+
+bowtie2 \
+  -x "$project/host_remove/host_index" \
+  -1 "$r1" \
+  -2 "$r2" \
+  --un-conc-gz "$project/host_removed/${base}_nohost_R%.fq.gz
+
+salmon quant \
+  -i /salmon_index \
+  -l A \
+  -1 /SRR34071591_nohost_R1.fq.gz \
+  -2 /SRR34071591_nohost_R2.fq.gz \
+  -p 8 \
+  --meta \
+  -o /salmon/SRR34071591
+
